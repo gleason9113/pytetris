@@ -3,6 +3,7 @@ from PyQt6.QtWidgets import QWidget
 from PyQt6.QtGui import QPainter, QColor
 from tetronimo import *
 
+
 class BoardWidget(QWidget):
     def __init__(self, board_width=10, board_height=20, cell_size=30, parent=None):
         super().__init__(parent)
@@ -17,13 +18,14 @@ class BoardWidget(QWidget):
     def paintEvent(self, event):
         painter = QPainter(self)
         self.render(painter)
+
     def render(self, painter):
         # Render grid
         for row in range(self.board_height):
             for col in range(self.board_width):
                 if self.grid[row][col] is not None:
                     painter.fillRect(col * self.cell_size, row * self.cell_size,
-                                     self.cell_size,  self.cell_size,
+                                     self.cell_size, self.cell_size,
                                      QColor(self.grid[row][col]))
         # render piece
         piece = self.active_piece
@@ -81,7 +83,21 @@ class BoardWidget(QWidget):
         return False
 
     def clear_lines(self):
+        full_rows = []
+        for row in range(self.board_height):
+            if all(self.grid[row][col] is not None for col in range(self.board_width)):
+                full_rows.append(row)
+
+        for row in full_rows:
+            del self.grid[row]
+            self.grid.insert(0, [None for _ in range(self.board_width)])
+
+        self.score += len(full_rows) * 100
+        return
+
+    def reset_game(self):
         return
 
     def game_over(self):
+        self.reset_game()
         return

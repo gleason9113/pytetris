@@ -1,5 +1,6 @@
 # pytetris/src/game/tetronimo.py
-from board import BoardWidget
+
+
 class Tetronimo:
     def __init__(self, shape, color):
         self.shape = shape
@@ -35,6 +36,7 @@ class Itetronimo(Tetronimo):
     def rotate_left(self):
         return self.rotate_right()
 
+
 class OTetronimo(Tetronimo):
     def __init__(self):
         shape = [
@@ -49,6 +51,7 @@ class OTetronimo(Tetronimo):
 
     def rotate_left(self):
         return self.shape  # No change
+
 
 class TTetronimo(Tetronimo):
     def __init__(self):
@@ -86,6 +89,7 @@ class TTetronimo(Tetronimo):
     def rotate_left(self):
         return self.rotate_right()
 
+
 class LTetronimo(Tetronimo):
     def __init__(self):
         shape = [
@@ -122,6 +126,7 @@ class LTetronimo(Tetronimo):
     def rotate_left(self):
         return self.rotate_right()
 
+
 class JTetronimo(Tetronimo):
     def __init__(self):
         shape = [
@@ -157,6 +162,7 @@ class JTetronimo(Tetronimo):
 
     def rotate_left(self):
         return self.rotate_right()
+
 
 class STetronimo(Tetronimo):
     def __init__(self):

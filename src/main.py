@@ -1,10 +1,15 @@
 # pytetris/main.py
-from PyQt6.QtWidgets import QApplication, QWidget
 import sys
+from PyQt6.QtWidgets import QApplication
+from gui.main_window import MainWindow
 
-app = QApplication(sys.argv)
 
-window = QWidget()
-window.show()
+def main():
+    app = QApplication(sys.argv)
+    window = MainWindow()
+    window.show()
+    sys.exit(app.exec())
 
-app.exec()
+
+if __name__ == "__main__":
+    main()

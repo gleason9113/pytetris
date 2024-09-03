@@ -29,6 +29,7 @@ class BoardWidget(QWidget):
         self.active_piece = None
         self.score = 0
         self.level = 0
+        self.is_paused = False
 
     def paintEvent(self, event):
         """
@@ -64,6 +65,15 @@ class BoardWidget(QWidget):
                         painter.fillRect(x, y, self.cell_size, self.cell_size, QColor(piece.color))
         return
 
+    def get_random_piece(self):
+        """
+           Generates a random Tetronimo piece.
+           :return: A random Tetronimo object.
+           """
+        import random
+        tetronimoes = [Itetronimo, OTetronimo, TTetronimo, LTetronimo, JTetronimo, STetronimo, ZTetronimo]
+        return random.choice(tetronimoes)()
+
     def place_piece(self, tetronimo):
         """
         Adds a new piece to the board at the starting position.
@@ -92,7 +102,7 @@ class BoardWidget(QWidget):
         elif direction == 'down':
             new_position = (self.active_piece.position[0], self.active_piece.position[1] + 1)
         else:
-            return # Whatever was passed, it wasn't a valid direction.
+            return  # Whatever was passed, it wasn't a valid direction.
 
         if not self.check_collision(self.active_piece, new_position):
             self.active_piece.position = new_position
@@ -151,7 +161,17 @@ class BoardWidget(QWidget):
         return
 
     def reset_game(self):
-        return
+        """
+        Resets the game state, clearing board, level, and score. Adds initial piece and pauses the game.
+        :return: None.
+        """
+        self.grid = [[None for _ in range(self.board_width)] for _ in range(self.board_height)]
+        self.active_piece = None
+        self.score = 0
+        self.level = 1
+        self.is_paused = True
+
+        self.place_piece(self.get_random_piece())
 
     def game_over(self):
         self.reset_game()

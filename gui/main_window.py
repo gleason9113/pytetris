@@ -1,6 +1,7 @@
 # pytetris/gui/main_window.py
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QLabel
+from PyQt6.QtWidgets import (QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QLabel, QPushButton, QSpacerItem,
+                             QSizePolicy)
 from src.game.board import BoardWidget
 
 
@@ -9,7 +10,9 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.level_label = None
         self.score_label = None
-        self.board = None
+        self.title_label = QLabel("PyTetris")
+        self.board = BoardWidget()
+        self.start_button = QPushButton("Start Game")
         self.setWindowTitle("PyTetris")
         self.setGeometry(100, 100, 400, 800)
         self.initUI()
@@ -21,14 +24,26 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(central_widget)
 
         layout = QVBoxLayout()
-        label_layout = QHBoxLayout() # Container for score and level
-        label_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.score_label = QLabel("Score: 0")
-        self.level_label = QLabel("Level: 1")
-        label_layout.addWidget(self.score_label)
-        label_layout.addWidget(self.level_label)
-        layout.addLayout(label_layout)
-        self.board = BoardWidget()
+        layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        layout.setContentsMargins(0, 20, 0, 0)
+
+        self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.title_label)
+
+        # Add a spacer above the button to push it towards the center vertically
+        layout.addItem(QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
+
+        self.start_button.setFixedSize(150, 50)
+        layout.addWidget(self.start_button, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        layout.addItem(QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
+
+#        label_layout = QHBoxLayout()  # Container for score and level
+#        label_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+#        label_layout.addWidget(self.score_label)
+#        label_layout.addWidget(self.level_label)
+#        layout.addLayout(label_layout)
+
         layout.addWidget(self.board)
 
         central_widget.setLayout(layout)
@@ -48,3 +63,12 @@ class MainWindow(QMainWindow):
                 border: 2px solid #FFFFFF;
             }
         """)
+
+    def start_game(self):
+        """
+        Starts a new game by resetting the board and adding the first piece.
+        :return: None.
+        """
+        self.board.reset_game()
+        self.board.is_paused = False
+

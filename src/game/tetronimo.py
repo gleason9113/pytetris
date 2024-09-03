@@ -189,27 +189,28 @@ class STetronimo(Tetronimo):
     def rotate_left(self):
         return self.rotate_right()
 
-    class ZTetronimo(Tetronimo):
-        def __init__(self):
-            shape = [
+
+class ZTetronimo(Tetronimo):
+    def __init__(self):
+        shape = [
+            [1, 1, 0],
+            [0, 1, 1]
+        ]
+        color = "red"
+        super().__init__(shape, color)
+
+    def rotate_right(self):
+        if self.rotation_state % 2 == 0:
+            return [
+                [0, 1],
+                [1, 1],
+                [1, 0]
+            ]
+        else:
+            return [
                 [1, 1, 0],
                 [0, 1, 1]
             ]
-            color = "red"
-            super().__init__(shape, color)
 
-        def rotate_right(self):
-            if self.rotation_state % 2 == 0:
-                return [
-                    [0, 1],
-                    [1, 1],
-                    [1, 0]
-                ]
-            else:
-                return [
-                    [1, 1, 0],
-                    [0, 1, 1]
-                ]
-
-        def rotate_left(self):
-            return self.rotate_right()
+    def rotate_left(self):
+        return self.rotate_right()

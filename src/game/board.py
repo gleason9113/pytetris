@@ -100,7 +100,8 @@ class BoardWidget(QWidget):
         elif direction == 'right':
             new_position = (self.active_piece.position[0] + 1, self.active_piece.position[1])
         elif direction == 'down':
-            new_position = (self.active_piece.position[0], self.active_piece.position[1] + 1)
+            self.move_piece_down()
+            return
         else:
             return  # Whatever was passed, it wasn't a valid direction.
 
@@ -111,6 +112,18 @@ class BoardWidget(QWidget):
             if direction == 'down':
                 self.place_piece(self.active_piece)
         return
+
+    def move_piece_down(self):
+        """
+        Moves the active piece down one cell.  If a collision is detected, the piece is placed at that point.
+        :return: None.
+        """
+        new_position = (self.active_piece.position[0], self.active_piece.position[1] + 1)
+        if not self.check_collision(self.active_piece, new_position):
+            self.active_piece.position = new_position
+            self.update()
+        else:
+            self.place_piece(self.active_piece)
 
     def rotate_piece(self, direction='right'):
         """

@@ -1,5 +1,5 @@
 # pytetris/gui/main_window.py
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtWidgets import (QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QLabel, QPushButton, QSpacerItem,
                              QSizePolicy)
 from src.game.board import BoardWidget
@@ -12,6 +12,7 @@ class MainWindow(QMainWindow):
         self.score_label = None
         self.title_label = QLabel("PyTetris")
         self.board = BoardWidget()
+        self.game_timer = QTimer()
         self.start_button = QPushButton("Start Game")
         self.setWindowTitle("PyTetris")
         self.setGeometry(100, 100, 400, 800)
@@ -38,11 +39,11 @@ class MainWindow(QMainWindow):
 
         layout.addItem(QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
 
-#        label_layout = QHBoxLayout()  # Container for score and level
-#        label_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-#        label_layout.addWidget(self.score_label)
-#        label_layout.addWidget(self.level_label)
-#        layout.addLayout(label_layout)
+        #        label_layout = QHBoxLayout()  # Container for score and level
+        #        label_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        #        label_layout.addWidget(self.score_label)
+        #        label_layout.addWidget(self.level_label)
+        #        layout.addLayout(label_layout)
 
         layout.addWidget(self.board)
 
@@ -64,6 +65,23 @@ class MainWindow(QMainWindow):
             }
         """)
 
+    def start_game_loop(self):
+        """
+        Start or resume the game loop, moving the active piece down at timed intervals.
+        :return: None
+        """
+        self.game_timer.disconnect()
+        if not self.game_timer.isActive():
+            self.game_timer.connect(self.board.move_piece_down)
+        self.game_timer.start(1000 // self.board.level)
+
+    def stop_game_loop(self):
+        """
+        Pauses the game loop.
+        :return: None
+        """
+        self.game_timer.stop()
+
     def start_game(self):
         """
         Starts a new game by resetting the board and adding the first piece.
@@ -72,3 +90,23 @@ class MainWindow(QMainWindow):
         self.board.reset_game()
         self.board.is_paused = False
 
+    def pause_game_key(self, event):
+        """
+        Handles key press event - pause/unpause game with Space key.
+        :param event:
+        :return: None
+        """
+        if event.key() == Qt.Key.Key_Space:
+            self.toggle_pause()
+
+    def toggle_pause(self):
+        """
+        Toggles game pause.
+        :return: None
+        """
+        if self.board.is_paused:
+            self.board.is_paused = False
+            self.start_game_loop()
+        else:
+            self.board.is_paused = True
+            self.stop_game_loop()

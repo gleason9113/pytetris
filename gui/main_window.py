@@ -1,11 +1,18 @@
 # pytetris/gui/main_window.py
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtWidgets import (QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QLabel, QPushButton, QSpacerItem,
-                             QSizePolicy)
+                             QSizePolicy, QFrame)
 from src.game.board import BoardWidget
 
 
 class MainWindow(QMainWindow):
+    def wrap_in_frame(self, widget):
+        frame = QFrame()
+        frame.setFrameShape(QFrame.Shape.Box)
+        frame.setLineWidth(2)
+        widget.setParent(frame)
+        return frame
+
     def __init__(self):
         super().__init__()
         self.level_label = None
@@ -20,34 +27,42 @@ class MainWindow(QMainWindow):
         self.apply_styles()
 
     def initUI(self):
-        # Create layout and displays
+        # Create the central widget and set the layout
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
 
+        # Create the main vertical layout
         layout = QVBoxLayout()
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        layout.setContentsMargins(0, 20, 0, 0)
+        layout.setContentsMargins(0, 20, 0, 0)  # Margins around the layout
 
-        self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # Title Label (centered)
+        self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter) # Centers label horizontally, not vertically
         layout.addWidget(self.title_label)
 
-        # Add a spacer above the button to push it towards the center vertically
-        layout.addItem(QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
-
+        # Start Button (centered)
         self.start_button.setFixedSize(150, 50)
+        self.start_button.clicked.connect(self.start_game)
         layout.addWidget(self.start_button, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        layout.addItem(QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
+        # Spacer between the start button and the board
+        self.btn_brd_spcr = QSpacerItem(20, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+        layout.addItem(self.btn_brd_spcr)
 
-        #        label_layout = QHBoxLayout()  # Container for score and level
-        #        label_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        #        label_layout.addWidget(self.score_label)
-        #        label_layout.addWidget(self.level_label)
-        #        layout.addLayout(label_layout)
+        # Board widget (initially hidden, centered)
+        self.board.setVisible(False)
+        layout.addWidget(self.board, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        layout.addWidget(self.board)
-
+        # Set the layout for the central widget
         central_widget.setLayout(layout)
+
+        # Connect the game timer to the board's move_piece_down method
+        self.game_timer.timeout.connect(self.board.move_piece_down)
+
+        # Debug prints for widget geometry
+        print(f"Title Label Geometry: {self.title_label.geometry()}")
+        print(f"Start Button Geometry: {self.start_button.geometry()}")
+        print(f"Board Widget Geometry: {self.board.geometry()}")
 
     def apply_styles(self):
         self.setStyleSheet("""
@@ -60,7 +75,7 @@ class MainWindow(QMainWindow):
                 color: #FFFFFF;
             }
             BoardWidget {
-                background-color: #202020;
+                background-color: #A9A9A9;
                 border: 2px solid #FFFFFF;
             }
         """)
@@ -87,8 +102,18 @@ class MainWindow(QMainWindow):
         Starts a new game by resetting the board and adding the first piece.
         :return: None.
         """
+        print("start_game called")
         self.board.reset_game()
         self.board.is_paused = False
+        self.start_button.hide()
+        layout = self.centralWidget().layout()
+        # layout.removeItem(self.btn_brd_spcr)  # Remove the old spacer
+        # layout.addItem(
+        #    QSpacerItem(20, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed))  # Add a zero-height spacer
+        self.board.setVisible(True)
+        layout.activate()
+        self.update()
+        print(f"Board Widget Geometry after start: {self.board.geometry()}")
 
     def pause_game_key(self, event):
         """

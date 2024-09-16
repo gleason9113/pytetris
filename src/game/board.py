@@ -1,6 +1,6 @@
 # pytetris/src/game/board.py
 from PyQt6.QtWidgets import QWidget
-from PyQt6.QtGui import QPainter, QColor
+from PyQt6.QtGui import QPainter, QColor, QPen
 from .tetronimo import *
 
 
@@ -31,6 +31,11 @@ class BoardWidget(QWidget):
         self.level = 0
         self.is_paused = False
 
+        self.setFixedSize(self.board_width * self.cell_size, self.board_height * self.cell_size)
+
+        print(f"BoardWidget size: {self.size()}")
+        print(f"BoardWidget geometry: {self.geometry()}")
+
     def paintEvent(self, event):
         """
         Handles the widget's paint event by rendering the current board state.
@@ -38,6 +43,23 @@ class BoardWidget(QWidget):
         :return: None
         """
         painter = QPainter(self)
+
+        # Board styles
+        painter.fillRect(self.rect(), QColor("#A9A9A9"))
+        # Set the color and pen for gridlines
+        pen = QPen(QColor("#555555"))  # Dark gray gridlines
+        pen.setWidth(1)
+        painter.setPen(pen)
+
+        # Draw horizontal and vertical gridlines
+        for row in range(self.board_height + 1):  # Draw horizontal lines
+            y = row * self.cell_size
+            painter.drawLine(0, y, self.board_width * self.cell_size, y)
+
+        for col in range(self.board_width + 1):  # Draw vertical lines
+            x = col * self.cell_size
+            painter.drawLine(x, 0, x, self.board_height * self.cell_size)
+
         self.draw_board(painter)
 
     def draw_board(self, painter):
@@ -178,6 +200,7 @@ class BoardWidget(QWidget):
         Resets the game state, clearing board, level, and score. Adds initial piece and pauses the game.
         :return: None.
         """
+        print("reset_game called")
         self.grid = [[None for _ in range(self.board_width)] for _ in range(self.board_height)]
         self.active_piece = None
         self.score = 0
@@ -185,6 +208,7 @@ class BoardWidget(QWidget):
         self.is_paused = True
 
         self.place_piece(self.get_random_piece())
+        self.update()
 
     def game_over(self):
         self.reset_game()

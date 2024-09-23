@@ -1,17 +1,55 @@
 # pytetris/gui/main_window.py
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtWidgets import (QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QLabel, QPushButton, QSpacerItem,
-                             QSizePolicy, QFrame)
+                             QSizePolicy, QFrame, QLayoutItem)
 from src.game.board import BoardWidget
 
 
 class MainWindow(QMainWindow):
-    def wrap_in_frame(self, widget):
-        frame = QFrame()
-        frame.setFrameShape(QFrame.Shape.Box)
-        frame.setLineWidth(2)
-        widget.setParent(frame)
-        return frame
+    def print_layout_info(self):
+        """
+        Prints layout information including geometry and visibility for every widget in the central widget layout.
+        """
+
+        def recursive_traverse(layout):
+            """
+            Recursively traverse the layout to print widget information.
+            :param layout: QLayout to traverse.
+            """
+            for i in range(layout.count()):
+                item = layout.itemAt(i)
+
+                if isinstance(item, QLayoutItem):
+                    widget = item.widget()
+
+                    if widget:
+                        # Get widget information
+                        widget_type = widget.__class__.__name__
+                        geometry = widget.geometry()
+                        visibility = widget.isVisible()
+
+                        # Print out widget information
+                        print(f"Widget Type: {widget_type}")
+                        print(f"Geometry: {geometry}")
+                        print(f"Visible: {visibility}")
+
+                        # Check if widget is in the layout (if layout contains the widget)
+                        if layout.indexOf(widget) != -1:
+                            print(f"In Layout: Yes")
+                        else:
+                            print(f"In Layout: No")
+                        print('-' * 40)
+
+                    # Handle nested layouts (in case there are any sub-layouts)
+                    if isinstance(item, QLayoutItem) and item.layout():
+                        recursive_traverse(item.layout())
+
+        # Get the central widget's layout and traverse it
+        layout = self.centralWidget().layout()
+        if layout is not None:
+            recursive_traverse(layout)
+        else:
+            print("No layout set for central widget.")
 
     def __init__(self):
         super().__init__()
@@ -31,77 +69,66 @@ class MainWindow(QMainWindow):
         self.setGeometry(100, 100, 400, 800)
         self.initUI()
         self.apply_styles()
+        self.setFocus()
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        print(f"MainWindow focus: {self.hasFocus()}")
 
     def initUI(self):
         # Create the central widget and set the layout
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
 
-        # Create the main horizontal layout
-        self.main_layout = QHBoxLayout()
+        # Create the main vertical layout
+        layout = QVBoxLayout()
+        layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        layout.setContentsMargins(0, 20, 0, 0)  # Margins around the layout
 
-        # LEFT SIDE: Game title, board, and controls (vertically stacked)
-        self.left_layout = QVBoxLayout()
+        # Create the info layout
+        self.score_label = QLabel("Score: 0")
+        self.score_label.setContentsMargins(0, 10, 0, 10)
+        self.lines_label = QLabel("Lines Cleared: 0")
+        self.lines_label.setContentsMargins(0, 10, 0, 10)
+        self.level_label = QLabel("Level: 0")
+        self.level_label.setContentsMargins(0, 10, 0, 10)
+        self.time_label = QLabel("Time: 00:00")
+        self.time_label.setContentsMargins(0, 10, 0, 10)
 
-        # Title label
-        self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.left_layout.addWidget(self.title_label)
+        # Create and organize the game state information layout
+        gamestate_layout = QVBoxLayout()
+        gamestate_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        gamestate_layout.addWidget(self.score_label, alignment=Qt.AlignmentFlag.AlignCenter)
+        gamestate_layout.addWidget(self.time_label, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        # Start Game button (visible on start)
-        self.start_button = QPushButton("Start Game")
+        # Inner layout for lines and level info
+        inner_layout = QHBoxLayout()
+        inner_layout.addWidget(self.lines_label, alignment=Qt.AlignmentFlag.AlignCenter)
+        inner_layout.addWidget(self.level_label, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        # Add layouts to the main game state layout
+        gamestate_layout.addLayout(inner_layout)
+        layout.addLayout(gamestate_layout)
+
+        # Start Button (centered)
         self.start_button.setFixedSize(150, 50)
-        self.start_button.clicked.connect(self.start_game)  # Connect the start button to the game start logic
-        self.left_layout.addWidget(self.start_button, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.start_button.clicked.connect(self.start_game)
+        layout.addWidget(self.start_button, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        # Spacer between the start button and the board
+        self.btn_brd_spcr = QSpacerItem(20, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+        layout.addItem(self.btn_brd_spcr)
 
         # Board widget (initially hidden, centered)
         self.board.setVisible(False)
-        self.left_layout.addWidget(self.board, alignment=Qt.AlignmentFlag.AlignCenter)
-        self.bottom_spcr = QSpacerItem(20, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
-        self.left_layout.addItem(self.bottom_spcr)
-
-        # Add left layout to the main layout
-        self.main_layout.addLayout(self.left_layout)
-
-        # Add a horizontal spacer between the left and right layouts
-        column_spacer = QSpacerItem(40, 20, QSizePolicy.Policy.Fixed,
-                                    QSizePolicy.Policy.Minimum)  # 40 pixels wide spacer
-        self.main_layout.addSpacerItem(column_spacer)
-
-        # RIGHT SIDE: Game info (Score, Level, etc.)
-        self.right_layout = QVBoxLayout()
-
-        # Info labels for Score, Level, Time, and Lines Cleared
-        self.score_label = QLabel("Score: 0")
-        self.level_label = QLabel("Level: 1")
-        self.time_label = QLabel("Time: 00:00")
-        self.lines_label = QLabel("Lines Cleared: 0")
-
-        # Add the info labels to the right layout
-        self.right_layout.addWidget(self.score_label)
-        self.right_layout.addWidget(self.level_label)
-        self.right_layout.addWidget(self.time_label)
-        self.right_layout.addWidget(self.lines_label)
-
-        # Add right layout to the main layout
-        self.main_layout.addLayout(self.right_layout)
-
-        # Hide the right layout initially
-        self.hide_right_layout()
-
-        # Set margins for the left and right layouts
-        self.left_layout.setContentsMargins(20, 0, 20, 0)  # Add 20px margin to the right of the left layout
-        self.right_layout.setContentsMargins(0, 0, 20, 0)  # Add 20px margin to the left of the right layout
+        layout.addWidget(self.board, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # Set the layout for the central widget
-        central_widget.setLayout(self.main_layout)
+        central_widget.setLayout(layout)
 
-        # Connect game timer and other signals as needed
+        # Print layout info (debugging only)
+        self.print_layout_info()
+
+        # Connect the game timer to the board's move_piece_down method
         self.game_timer.timeout.connect(self.board.move_piece_down)
-
-        # Debug prints for widget geometry
-        print(f"Title Label Geometry: {self.title_label.geometry()}")
-        print(f"Start Button Geometry: {self.start_button.geometry()}")
-        print(f"Board Widget Geometry: {self.board.geometry()}")
 
     def apply_styles(self):
         self.setStyleSheet("""
@@ -119,33 +146,38 @@ class MainWindow(QMainWindow):
             }
         """)
 
-    def hide_right_layout(self):
+    def keyPressEvent(self, event):
         """
-        Hide all widgets in the right layout (Score, Level, Time, Lines Cleared).
+        Handle key press events for game input.
+        :param event: QKeyEvent - key press information.
+        :return: None.
         """
-        for i in reversed(range(self.right_layout.count())):  # Loop through the right layout widgets
-            widget = self.right_layout.itemAt(i).widget()
-            if widget is not None:
-                widget.hide()  # Hide each widget
-
-    def show_right_layout(self):
-        """
-        Show all widgets in the right layout (Score, Level, Time, Lines Cleared).
-        """
-        for i in reversed(range(self.right_layout.count())):  # Loop through the right layout widgets
-            widget = self.right_layout.itemAt(i).widget()
-            if widget is not None:
-                widget.show()  # Show each widget
+        print("keyPressEvent called!")
+        if event.key() == Qt.Key.Key_Left:
+            self.board.move_piece('left')
+        elif event.key() == Qt.Key.Key_Right:
+            self.board.move_piece('right')
+        elif event.key() == Qt.Key.Key_Up:
+            self.board.rotate_piece('right')
+        elif event.key() == Qt.Key.Key_Down:
+            self.board.move_piece('down')
+        elif event.key() == Qt.Key.Key_Space:
+            self.toggle_pause()
 
     def start_game_loop(self):
         """
         Start or resume the game loop, moving the active piece down at timed intervals.
         :return: None
         """
-        self.game_timer.disconnect()
-        if not self.game_timer.isActive():
-            self.game_timer.connect(self.board.move_piece_down)
-        self.game_timer.start(1000 // self.board.level)
+        try:
+            self.game_timer.timeout.disconnect()
+        except TypeError:
+            pass
+        self.board.level = max(self.board.level, 1)
+
+        self.game_timer.timeout.connect(self.board.move_piece_down)
+        interval = 1000 // self.board.level
+        self.game_timer.start(interval)
 
     def stop_game_loop(self):
         """
@@ -164,17 +196,12 @@ class MainWindow(QMainWindow):
         self.board.is_paused = False
         self.start_button.hide()
         layout = self.centralWidget().layout()
-        # layout.removeItem(self.btn_brd_spcr)  # Remove the old spacer
-        # layout.addItem(
-        #    QSpacerItem(20, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed))  # Add a zero-height spacer
         self.board.setVisible(True)
-        # Show the score and game info labels on the right
-        # Show the right layout (score and game info labels)
-        self.show_right_layout()
 
         layout.activate()
         self.update()
-        print(f"Board Widget Geometry after start: {self.board.geometry()}")
+        self.print_layout_info()
+        self.start_game_loop()
 
     def pause_game_key(self, event):
         """

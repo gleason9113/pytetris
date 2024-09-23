@@ -1,4 +1,5 @@
 # pytetris/src/game/board.py
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QWidget
 from PyQt6.QtGui import QPainter, QColor, QPen
 from .tetronimo import *
@@ -30,6 +31,7 @@ class BoardWidget(QWidget):
         self.score = 0
         self.level = 0
         self.is_paused = False
+        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
         self.setFixedSize(self.board_width * self.cell_size, self.board_height * self.cell_size)
 
@@ -42,25 +44,29 @@ class BoardWidget(QWidget):
         :param event: (QPaintEvent) The paint event object containing details about the repaint request.
         :return: None
         """
+        # print("paintEvent called!")
         painter = QPainter(self)
+        try:
+            # Board styles
+            painter.fillRect(self.rect(), QColor("#A9A9A9"))
+            # Set the color and pen for gridlines
+            pen = QPen(QColor("#555555"))  # Dark gray gridlines
+            pen.setWidth(1)
+            painter.setPen(pen)
 
-        # Board styles
-        painter.fillRect(self.rect(), QColor("#A9A9A9"))
-        # Set the color and pen for gridlines
-        pen = QPen(QColor("#555555"))  # Dark gray gridlines
-        pen.setWidth(1)
-        painter.setPen(pen)
+            # Draw horizontal and vertical gridlines
+            for row in range(self.board_height + 1):  # Draw horizontal lines
+                y = row * self.cell_size
+                painter.drawLine(0, y, self.board_width * self.cell_size, y)
 
-        # Draw horizontal and vertical gridlines
-        for row in range(self.board_height + 1):  # Draw horizontal lines
-            y = row * self.cell_size
-            painter.drawLine(0, y, self.board_width * self.cell_size, y)
+            for col in range(self.board_width + 1):  # Draw vertical lines
+                x = col * self.cell_size
+                painter.drawLine(x, 0, x, self.board_height * self.cell_size)
 
-        for col in range(self.board_width + 1):  # Draw vertical lines
-            x = col * self.cell_size
-            painter.drawLine(x, 0, x, self.board_height * self.cell_size)
+            self.draw_board(painter)
+        finally:
+            painter.end()
 
-        self.draw_board(painter)
 
     def draw_board(self, painter):
         """
@@ -69,6 +75,7 @@ class BoardWidget(QWidget):
         :param painter: (QPainter) The QPainter object used for drawing the board.
         :return: None.
         """
+        # print("draw_board called!")
         # Render grid
         for row in range(self.board_height):
             for col in range(self.board_width):
@@ -111,12 +118,26 @@ class BoardWidget(QWidget):
                     self.grid[row][x_position + col] = tetronimo.color
         self.active_piece = tetronimo
 
+    def clear_active_piece(self):
+        """
+        Clears the active piece from the grid to allow it to move to a new position without leaving a trail.
+        :return: None.
+        """
+        for row in range(len(self.active_piece.shape)):
+            for col in range(len(self.active_piece.shape[row])):
+                if self.active_piece.shape[row][col] == 1:
+                    x = self.active_piece.position[0] + col
+                    y = self.active_piece.position[1] + row
+                    if 0 <= x < self.board_width and 0 <= y < self.board_height:
+                        self.grid[y][x] = None  # Clear the previous position in the grid
+
     def move_piece(self, direction):
         """
         Moves the active piece in the specified direction.
         :param direction: (str) The direction to move: 'left', 'right', or 'down'.
         :return: None.
         """
+        print(f"move_piece called:  {direction}")
         if direction == 'left':
             new_position = (self.active_piece.position[0] - 1, self.active_piece.position[1])
         elif direction == 'right':
@@ -127,12 +148,13 @@ class BoardWidget(QWidget):
         else:
             return  # Whatever was passed, it wasn't a valid direction.
 
-        if not self.check_collision(self.active_piece, new_position):
+        if not self.check_collision(self.active_piece.shape, new_position):
             self.active_piece.position = new_position
             self.update()
         else:
             if direction == 'down':
                 self.place_piece(self.active_piece)
+        self.update()
         return
 
     def move_piece_down(self):
@@ -140,12 +162,16 @@ class BoardWidget(QWidget):
         Moves the active piece down one cell.  If a collision is detected, the piece is placed at that point.
         :return: None.
         """
+        # print(f"move_piece_down called! Current position: {self.active_piece.position}")
+        self.clear_active_piece()
         new_position = (self.active_piece.position[0], self.active_piece.position[1] + 1)
-        if not self.check_collision(self.active_piece, new_position):
+        if not self.check_collision(self.active_piece.shape, new_position):
             self.active_piece.position = new_position
+            print(f"New position after move: {self.active_piece.position}")
             self.update()
         else:
             self.place_piece(self.active_piece)
+        self.update()
 
     def rotate_piece(self, direction='right'):
         """

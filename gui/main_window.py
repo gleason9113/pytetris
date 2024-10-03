@@ -1,58 +1,19 @@
 # pytetris/gui/main_window.py
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtWidgets import (QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QLabel, QPushButton, QSpacerItem,
-                             QSizePolicy, QFrame, QLayoutItem)
+                             QSizePolicy)
 from src.game.board import BoardWidget
+from .utils import print_layout_info
 
 
 class MainWindow(QMainWindow):
-    def print_layout_info(self):
-        """
-        Prints layout information including geometry and visibility for every widget in the central widget layout.
-        """
-
-        def recursive_traverse(layout):
-            """
-            Recursively traverse the layout to print widget information.
-            :param layout: QLayout to traverse.
-            """
-            for i in range(layout.count()):
-                item = layout.itemAt(i)
-
-                if isinstance(item, QLayoutItem):
-                    widget = item.widget()
-
-                    if widget:
-                        # Get widget information
-                        widget_type = widget.__class__.__name__
-                        geometry = widget.geometry()
-                        visibility = widget.isVisible()
-
-                        # Print out widget information
-                        print(f"Widget Type: {widget_type}")
-                        print(f"Geometry: {geometry}")
-                        print(f"Visible: {visibility}")
-
-                        # Check if widget is in the layout (if layout contains the widget)
-                        if layout.indexOf(widget) != -1:
-                            print(f"In Layout: Yes")
-                        else:
-                            print(f"In Layout: No")
-                        print('-' * 40)
-
-                    # Handle nested layouts (in case there are any sub-layouts)
-                    if isinstance(item, QLayoutItem) and item.layout():
-                        recursive_traverse(item.layout())
-
-        # Get the central widget's layout and traverse it
-        layout = self.centralWidget().layout()
-        if layout is not None:
-            recursive_traverse(layout)
-        else:
-            print("No layout set for central widget.")
 
     def __init__(self):
         super().__init__()
+        self.level = None
+        self.lines_cleared = None
+        self.score = None
+        self.btn_brd_spcr = None
         self.right_layout = None
         self.left_layout = None
         self.main_layout = None
@@ -61,6 +22,8 @@ class MainWindow(QMainWindow):
         self.time_label = None
         self.level_label = None
         self.score_label = None
+        self.elapsed_time = 0
+        self.ui_update_timer = QTimer()
         self.title_label = QLabel("PyTetris")
         self.board = BoardWidget()
         self.game_timer = QTimer()
@@ -71,6 +34,8 @@ class MainWindow(QMainWindow):
         self.apply_styles()
         self.setFocus()
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.ui_update_timer.timeout.connect(self.update_timer_label)  # Call every second
+        self.ui_update_timer.start(1000)  # Fire every 1000 milliseconds (1 second)
         print(f"MainWindow focus: {self.hasFocus()}")
 
     def initUI(self):
@@ -125,10 +90,28 @@ class MainWindow(QMainWindow):
         central_widget.setLayout(layout)
 
         # Print layout info (debugging only)
-        self.print_layout_info()
+        print_layout_info(self.centralWidget())
 
         # Connect the game timer to the board's move_piece_down method
         self.game_timer.timeout.connect(self.board.move_piece_down)
+
+    def update_score_label(self):
+        """
+        Update the score label with the current score.
+        """
+        self.score_label.setText(f"Score: {self.score}")
+
+    def update_lines_label(self):
+        """
+        Update the lines cleared label with the current number of lines cleared.
+        """
+        self.lines_label.setText(f"Lines Cleared: {self.lines_cleared}")
+
+    def update_level_label(self):
+        """
+        Update the level label with the current level.
+        """
+        self.level_label.setText(f"Level: {self.level}")
 
     def apply_styles(self):
         self.setStyleSheet("""
@@ -146,13 +129,21 @@ class MainWindow(QMainWindow):
             }
         """)
 
+    def update_timer_label(self):
+        """
+        Update the timer_label to show elapsed time in MM:SS format.
+        """
+        self.elapsed_time += 1  # Increment elapsed time by 1 second
+        minutes = self.elapsed_time // 60
+        seconds = self.elapsed_time % 60
+        self.time_label.setText(f"Time: {minutes:02}:{seconds:02}")  # Format as MM:SS
+
     def keyPressEvent(self, event):
         """
         Handle key press events for game input.
         :param event: QKeyEvent - key press information.
         :return: None.
         """
-        print("keyPressEvent called!")
         if event.key() == Qt.Key.Key_Left:
             self.board.move_piece('left')
         elif event.key() == Qt.Key.Key_Right:
@@ -200,7 +191,7 @@ class MainWindow(QMainWindow):
 
         layout.activate()
         self.update()
-        self.print_layout_info()
+        print_layout_info(self.centralWidget())
         self.start_game_loop()
 
     def pause_game_key(self, event):

@@ -67,6 +67,19 @@ class BoardWidget(QWidget):
         finally:
             painter.end()
 
+    def get_active_piece_coordinates(self):
+        """
+        Returns a list of grid coordinates occupied by the current active piece.
+        :return: List of (x, y) coordinates occupied by the active piece.
+        """
+        coordinates = []
+        for row in range(len(self.active_piece.shape)):
+            for col in range(len(self.active_piece.shape[row])):
+                if self.active_piece.shape[row][col] == 1:
+                    x = self.active_piece.position[0] + col
+                    y = self.active_piece.position[1] + row
+                    coordinates.append((x, y))
+        return coordinates
 
     def draw_board(self, painter):
         """
@@ -75,11 +88,12 @@ class BoardWidget(QWidget):
         :param painter: (QPainter) The QPainter object used for drawing the board.
         :return: None.
         """
-        # print("draw_board called!")
+        print("Drawing board")
         # Render grid
         for row in range(self.board_height):
             for col in range(self.board_width):
                 if self.grid[row][col] is not None:  # Cell is occupied
+                    print(f"Drawing block at ({row}, {col}) with color {self.grid[row][col]}")
                     painter.fillRect(col * self.cell_size, row * self.cell_size,
                                      self.cell_size, self.cell_size,
                                      QColor(self.grid[row][col]))
@@ -94,6 +108,15 @@ class BoardWidget(QWidget):
                         painter.fillRect(x, y, self.cell_size, self.cell_size, QColor(piece.color))
         return
 
+    def print_grid(self):
+        """
+        Prints the current state of the grid for debugging.
+        """
+        print("Current grid state:")
+        for row in range(self.board_height):
+            print([self.grid[row][col] if self.grid[row][col] is not None else "empty" for col in
+                   range(self.board_width)])
+
     def get_random_piece(self):
         """
            Generates a random Tetronimo piece.
@@ -101,9 +124,11 @@ class BoardWidget(QWidget):
            """
         import random
         tetronimoes = [Itetronimo, OTetronimo, TTetronimo, LTetronimo, JTetronimo, STetronimo, ZTetronimo]
-        return random.choice(tetronimoes)()
+        new_piece = random.choice(tetronimoes)()
+        # print(f"Generated piece: {new_piece}")
+        return new_piece
 
-    def place_piece(self, tetronimo):
+    def start_new_piece(self, tetronimo):
         """
         Adds a new piece to the board at the starting position.
         :param tetronimo: (Tetronimo) The game piece to be added at the starting position.
@@ -137,7 +162,6 @@ class BoardWidget(QWidget):
         :param direction: (str) The direction to move: 'left', 'right', or 'down'.
         :return: None.
         """
-        print(f"move_piece called:  {direction}")
         if direction == 'left':
             new_position = (self.active_piece.position[0] - 1, self.active_piece.position[1])
         elif direction == 'right':
@@ -153,7 +177,7 @@ class BoardWidget(QWidget):
             self.update()
         else:
             if direction == 'down':
-                self.place_piece(self.active_piece)
+                self.start_new_piece(self.active_piece)
         self.update()
         return
 
@@ -163,14 +187,27 @@ class BoardWidget(QWidget):
         :return: None.
         """
         # print(f"move_piece_down called! Current position: {self.active_piece.position}")
+        if self.active_piece is None:
+            return
         self.clear_active_piece()
         new_position = (self.active_piece.position[0], self.active_piece.position[1] + 1)
+        # Check for collision at new position
         if not self.check_collision(self.active_piece.shape, new_position):
+
             self.active_piece.position = new_position
-            print(f"New position after move: {self.active_piece.position}")
-            self.update()
+            # print(f"New position after move: {self.active_piece.position}")
+            # self.update()
         else:
-            self.place_piece(self.active_piece)
+            self.add_piece_to_board()
+            self.clear_lines()
+            self.print_grid()
+            new_piece = self.get_random_piece()
+            self.start_new_piece(new_piece)
+            if self.check_collision(new_piece.shape, new_piece.position):
+                print("Game Over: Piece cannot be placed")
+                self.game_over()
+            else:
+                print("New piece placed successfully")
         self.update()
 
     def rotate_piece(self, direction='right'):
@@ -197,16 +234,46 @@ class BoardWidget(QWidget):
             pass
 
     def check_collision(self, shape, position):
+        """
+        Checks for collision between the active piece and other pieces or board edges.
+        :param shape: Shape of the active piece.
+        :param position: The top left position (x, y) to check the shape at.
+        :return: True if collision detected, False otherwise.
+        """
+        # Get current piece coordinates
+        active_piece_coords = self.get_active_piece_coordinates() if self.active_piece else []
+
         for row in range(len(shape)):
             for col in range(len(shape[row])):
                 if shape[row][col] == 1:
                     x = position[0] + col
                     y = position[1] + row
+                    # Boundary check
                     if x < 0 or x >= self.board_width or y >= self.board_height:
+                        print(f"Collision with boundary detected at: ({x}, {y})")
                         return True
-                    if self.grid[y][x] is not None:
+                    # Piece check
+                    if self.grid[y][x] is not None and (x, y) not in active_piece_coords:
+                        print(f"Collision with another piece at: ({x}, {y})")
                         return True
         return False
+
+    def add_piece_to_board(self):
+        """
+        Adds the current piece to the board when it collides.
+        :return: None
+        """
+        print("Adding piece to the board")
+        for row in range(len(self.active_piece.shape)):
+            for col in range(len(self.active_piece.shape[row])):
+                if self.active_piece.shape[row][col] == 1:
+                    x = self.active_piece.position[0] + col
+                    y = self.active_piece.position[1] + row
+                    print(f"Adding block to grid at ({x}, {y})")
+                    if 0 <= x < self.board_width and 0 <= y < self.board_height:
+                        self.grid[y][x] = self.active_piece.color
+        self.active_piece = None
+        print("Piece added to the board and active_piece set to None")
 
     def clear_lines(self):
         full_rows = []
@@ -233,7 +300,7 @@ class BoardWidget(QWidget):
         self.level = 1
         self.is_paused = True
 
-        self.place_piece(self.get_random_piece())
+        self.start_new_piece(self.get_random_piece())
         self.update()
 
     def game_over(self):
